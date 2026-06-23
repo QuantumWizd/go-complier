@@ -15,10 +15,10 @@ func Start(conn net.Conn, myName string) {
 	quit := make(chan struct{})
 
 	reader := bufio.NewReader(conn)
-	var peerRoomCode string
 
 	// read WHO and HIST before starting live session
-	for {
+	whoReceived := false
+	for !whoReceived {
 		line, err := reader.ReadString('\n')
 		if err != nil {
 			PrintError("Lost connection during setup")
@@ -31,12 +31,12 @@ func Start(conn net.Conn, myName string) {
 		}
 
 		if msg.Type == TypeWho {
-			peerRoomCode = msg.Body
 			users := strings.Split(msg.Body, ",")
 			ClearScreen()
 			PrintHeader("----", myName, "connecting...", len(users))
 			PrintSystem("Connected to room")
 			PrintUserList(users)
+			whoReceived = true
 			continue
 		}
 
@@ -45,15 +45,10 @@ func Start(conn net.Conn, myName string) {
 			continue
 		}
 
-		// first non-WHO non-HIST message means live chat has begun
-		// process it then break
 		if msg.Type == TypeMsg {
 			PrintMessage(msg)
 		}
-		break
 	}
-
-	_ = peerRoomCode
 
 	PrintSystem("Live chat started — type your message and press Enter")
 	PrintPrompt()
